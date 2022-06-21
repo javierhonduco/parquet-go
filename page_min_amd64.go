@@ -21,4 +21,4 @@ func minFloat32(data []float32) float32
 func minFloat64(data []float64) float64
 
 //go:noescape
-func minBE128(data [][16]byte) []byte
+func minBE128AVX2(data [][16]byte) []byte

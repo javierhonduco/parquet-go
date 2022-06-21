@@ -21,4 +21,4 @@ func maxFloat32(data []float32) float32
 func maxFloat64(data []float64) float64
 
 //go:noescape
-func maxBE128(data [][16]byte) []byte
+func maxBE128AVX2(data [][16]byte) []byte

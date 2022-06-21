@@ -10,7 +10,25 @@ import (
 	"github.com/segmentio/parquet-go/encoding/plain"
 	"github.com/segmentio/parquet-go/internal/bitpack"
 	"github.com/segmentio/parquet-go/internal/unsafecast"
+	"golang.org/x/sys/cpu"
 )
+
+var (
+	minBE128 func(data [][16]byte) (min []byte)
+	maxBE128 func(data [][16]byte) (min []byte)
+)
+
+func init() {
+	switch {
+	case cpu.X86.HasAVX2:
+		minBE128 = minBE128AVX2
+		maxBE128 = maxBE128AVX2
+
+	default:
+		minBE128 = minBE128Default
+		maxBE128 = maxBE128Default
+	}
+}
 
 // Page values represent sequences of parquet values. From the Parquet
 // documentation: "Column chunks are a chunk of the data for a particular
@@ -1497,3 +1515,47 @@ func (page *nullPage) Slice(i, j int64) BufferedPage {
 func (page *nullPage) RepetitionLevels() []byte { return nil }
 func (page *nullPage) DefinitionLevels() []byte { return nil }
 func (page *nullPage) Data() []byte             { return nil }
+
+func minBE128Default(data [][16]byte) (min []byte) {
+	if len(data) > 0 {
+		m := binary.BigEndian.Uint64(data[0][:8])
+		j := 0
+		for i := 1; i < len(data); i++ {
+			x := binary.BigEndian.Uint64(data[i][:8])
+			switch {
+			case x < m:
+				m, j = x, i
+			case x == m:
+				y := binary.BigEndian.Uint64(data[i][8:])
+				n := binary.BigEndian.Uint64(data[j][8:])
+				if y < n {
+					m, j = x, i
+				}
+			}
+		}
+		min = data[j][:]
+	}
+	return min
+}
+
+func maxBE128Default(data [][16]byte) (min []byte) {
+	if len(data) > 0 {
+		m := binary.BigEndian.Uint64(data[0][:8])
+		j := 0
+		for i := 1; i < len(data); i++ {
+			x := binary.BigEndian.Uint64(data[i][:8])
+			switch {
+			case x > m:
+				m, j = x, i
+			case x == m:
+				y := binary.BigEndian.Uint64(data[i][8:])
+				n := binary.BigEndian.Uint64(data[j][8:])
+				if y > n {
+					m, j = x, i
+				}
+			}
+		}
+		min = data[j][:]
+	}
+	return min
+}

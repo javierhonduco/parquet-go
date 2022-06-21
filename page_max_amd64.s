@@ -436,8 +436,8 @@ done:
 // of quad words representing the 128 bits elements are the maximums.
 #define vpmaxu128mask(M) MOVB $0b10101010, M
 
-// func maxBE128(data [][16]byte) []byte
-TEXT ·maxBE128(SB), NOSPLIT, $-48
+// func maxBE128AVX2(data [][16]byte) []byte
+TEXT ·maxBE128AVX2(SB), NOSPLIT, $-48
     MOVQ data_base+0(FP), AX
     MOVQ data_len+8(FP), CX
     CMPQ CX, $0
